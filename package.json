@@ -1,0 +1,37 @@
+{
+  "name": "mesaflow",
+  "version": "1.0.0",
+  "description": "Sistema Multi-Tenant para Gestão de Restaurantes",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "build": "npm run build --workspaces",
+    "build:backend": "npm run build --workspace=backend",
+    "build:frontend": "npm run build --workspace=frontend",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "prisma:migrate": "npm run migrate --workspace=backend",
+    "prisma:studio": "npm run studio --workspace=backend"
+  },
+  "keywords": [
+    "restaurant",
+    "management",
+    "multi-tenant",
+    "pos",
+    "nestjs",
+    "nextjs"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

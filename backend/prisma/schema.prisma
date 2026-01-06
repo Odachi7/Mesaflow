@@ -1,0 +1,352 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE TENANTS
+// ============================================
+
+model Tenant {
+  id         String   @id @default(uuid())
+  name       String
+  subdomain  String   @unique
+  planType   String   @map("plan_type") // basic, premium, enterprise
+  isActive   Boolean  @default(true) @map("is_active")
+  settings   Json?    // configurações personalizadas
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users            User[]
+  tables           Table[]
+  orders           Order[]
+  products         Product[]
+  categories       Category[]
+  inventoryItems   InventoryItem[]
+  cashRegisters    CashRegister[]
+  messages         Message[]
+
+  @@map("tenants")
+}
+
+// ============================================
+// USERS
+// ============================================
+
+model User {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  email        String
+  passwordHash String   @map("password_hash")
+  fullName     String   @map("full_name")
+  role         String   // admin, manager, cashier, waiter
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  ordersAsWaiter Order[]       @relation("waiter_orders")
+  cashSessions  CashSession[]
+  payments      Payment[]
+  inventoryMovements InventoryMovement[]
+  sentMessages  Message[]      @relation("sent_messages")
+  receivedMessages Message[]   @relation("received_messages")
+
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("users")
+}
+
+// ============================================
+// TABLES (MESAS)
+// ============================================
+
+model Table {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  tableNumber String   @map("table_number")
+  capacity    Int
+  status      String   @default("available") // available, occupied, reserved, maintenance
+  qrCode      String?  @map("qr_code")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([tenantId, tableNumber])
+  @@index([tenantId, status])
+  @@map("tables")
+}
+
+// ============================================
+// CATEGORIES
+// ============================================
+
+model Category {
+  id           String   @id @default(uuid())
+  tenantId     String   @map("tenant_id")
+  name         String
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant   Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@index([tenantId])
+  @@map("categories")
+}
+
+// ============================================
+// PRODUCTS (CARDÁPIO)
+// ============================================
+
+model Product {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  categoryId      String?  @map("category_id")
+  name            String
+  description     String?
+  price           Decimal  @db.Decimal(10, 2)
+  costPrice       Decimal? @map("cost_price") @db.Decimal(10, 2)
+  imageUrl        String?  @map("image_url")
+  preparationTime Int?     @map("preparation_time") // minutos
+  isAvailable     Boolean  @default(true) @map("is_available")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant      Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  category    Category?       @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  recipes     ProductRecipe[]
+
+  @@index([tenantId, isActive])
+  @@index([categoryId])
+  @@map("products")
+}
+
+// ============================================
+// ORDERS (COMANDAS/PEDIDOS)
+// ============================================
+
+model Order {
+  id           String    @id @default(uuid())
+  tenantId     String    @map("tenant_id")
+  tableId      String?   @map("table_id")
+  orderNumber  String    @map("order_number")
+  waiterId     String?   @map("waiter_id")
+  customerName String?   @map("customer_name")
+  status       String    @default("open") // open, preparing, ready, closed, cancelled
+  orderType    String?   @map("order_type") // dine_in, takeout, delivery
+  subtotal     Decimal   @default(0) @db.Decimal(10, 2)
+  discount     Decimal   @default(0) @db.Decimal(10, 2)
+  tax          Decimal   @default(0) @db.Decimal(10, 2)
+  total        Decimal   @default(0) @db.Decimal(10, 2)
+  notes        String?
+  openedAt     DateTime  @default(now()) @map("opened_at")
+  closedAt     DateTime? @map("closed_at")
+
+  // Relations
+  tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  table    Table?      @relation(fields: [tableId], references: [id])
+  waiter   User?       @relation("waiter_orders", fields: [waiterId], references: [id])
+  items    OrderItem[]
+  payments Payment[]
+
+  @@unique([tenantId, orderNumber])
+  @@index([tenantId, status])
+  @@index([tableId])
+  @@map("orders")
+}
+
+// ============================================
+// ORDER ITEMS
+// ============================================
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  orderId   String   @map("order_id")
+  productId String   @map("product_id")
+  quantity  Int
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  subtotal  Decimal  @db.Decimal(10, 2)
+  status    String   @default("pending") // pending, preparing, ready, delivered, cancelled
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([orderId])
+  @@index([tenantId])
+  @@map("order_items")
+}
+
+// ============================================
+// INVENTORY (ESTOQUE)
+// ============================================
+
+model InventoryItem {
+  id               String    @id @default(uuid())
+  tenantId         String    @map("tenant_id")
+  name             String
+  unit             String? // kg, un, l, etc
+  currentQuantity  Decimal   @default(0) @map("current_quantity") @db.Decimal(10, 3)
+  minQuantity      Decimal?  @map("min_quantity") @db.Decimal(10, 3)
+  costPerUnit      Decimal?  @map("cost_per_unit") @db.Decimal(10, 2)
+  lastRestockedAt  DateTime? @map("last_restocked_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  tenant     Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  movements  InventoryMovement[]
+  recipes    ProductRecipe[]
+
+  @@index([tenantId])
+  @@map("inventory_items")
+}
+
+// ============================================
+// INVENTORY MOVEMENTS
+// ============================================
+
+model InventoryMovement {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  inventoryItemId String   @map("inventory_item_id")
+  movementType    String   @map("movement_type") // in, out, adjustment
+  quantity        Decimal  @db.Decimal(10, 3)
+  unitCost        Decimal? @map("unit_cost") @db.Decimal(10, 2)
+  reason          String?
+  userId          String?  @map("user_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  user          User?         @relation(fields: [userId], references: [id])
+
+  @@index([inventoryItemId])
+  @@map("inventory_movements")
+}
+
+// ============================================
+// PRODUCT RECIPES
+// ============================================
+
+model ProductRecipe {
+  id              String   @id @default(uuid())
+  tenantId        String   @map("tenant_id")
+  productId       String   @map("product_id")
+  inventoryItemId String   @map("inventory_item_id")
+  quantityNeeded  Decimal  @map("quantity_needed") @db.Decimal(10, 3)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  // Relations
+  product       Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+
+  @@map("product_recipes")
+}
+
+// ============================================
+// PAYMENTS
+// ============================================
+
+model Payment {
+  id            String   @id @default(uuid())
+  tenantId      String   @map("tenant_id")
+  orderId       String   @map("order_id")
+  paymentMethod String   @map("payment_method") // cash, credit_card, debit_card, pix
+  amount        Decimal  @db.Decimal(10, 2)
+  status        String   @default("pending") // pending, approved, failed, refunded
+  transactionId String?  @map("transaction_id")
+  cashierId     String?  @map("cashier_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  order   Order  @relation(fields: [orderId], references: [id])
+  cashier User?  @relation(fields: [cashierId], references: [id])
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+// ============================================
+// CASH REGISTERS
+// ============================================
+
+model CashRegister {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  location  String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sessions CashSession[]
+
+  @@map("cash_registers")
+}
+
+// ============================================
+// CASH SESSIONS
+// ============================================
+
+model CashSession {
+  id              String    @id @default(uuid())
+  tenantId        String    @map("tenant_id")
+  cashRegisterId  String    @map("cash_register_id")
+  cashierId       String    @map("cashier_id")
+  openingBalance  Decimal   @map("opening_balance") @db.Decimal(10, 2)
+  closingBalance  Decimal?  @map("closing_balance") @db.Decimal(10, 2)
+  expectedBalance Decimal?  @map("expected_balance") @db.Decimal(10, 2)
+  difference      Decimal?  @db.Decimal(10, 2)
+  status          String    @default("open") // open, closed
+  openedAt        DateTime  @default(now()) @map("opened_at")
+  closedAt        DateTime? @map("closed_at")
+
+  // Relations
+  cashRegister CashRegister @relation(fields: [cashRegisterId], references: [id])
+  cashier      User         @relation(fields: [cashierId], references: [id])
+
+  @@map("cash_sessions")
+}
+
+// ============================================
+// MESSAGES (COMUNICAÇÃO INTERNA)
+// ============================================
+
+model Message {
+  id          String   @id @default(uuid())
+  tenantId    String   @map("tenant_id")
+  senderId    String   @map("sender_id")
+  recipientId String?  @map("recipient_id") // null = broadcast
+  message     String
+  messageType String   @default("chat") @map("message_type") // chat, alert, order_update
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  tenant    Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  sender    User   @relation("sent_messages", fields: [senderId], references: [id])
+  recipient User?  @relation("received_messages", fields: [recipientId], references: [id])
+
+  @@index([recipientId, isRead])
+  @@map("messages")
+}
