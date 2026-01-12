@@ -211,7 +211,7 @@ Este projeto está sob a licença ISC.
 
 ## 👥 Autores
 
-- Desenvolvimento inicial - MesaFlow Team
+- Ryan Rodrigues
 
 ## 🙏 Agradecimentos
 

@@ -33,8 +33,34 @@ model Tenant {
   inventoryItems   InventoryItem[]
   cashRegisters    CashRegister[]
   messages         Message[]
+  customers        Customer[]
 
   @@map("tenants")
+}
+
+// ============================================
+// CUSTOMERS (CLIENTES - CRM)
+// ============================================
+
+model Customer {
+  id        String   @id @default(uuid())
+  tenantId  String   @map("tenant_id")
+  name      String
+  phone     String?
+  email     String?
+  cpf       String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  tenant Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([tenantId, phone])
+  @@unique([tenantId, email])
+  @@index([tenantId])
+  @@map("customers")
 }
 
 // ============================================
@@ -147,6 +173,7 @@ model Order {
   tableId      String?   @map("table_id")
   orderNumber  String    @map("order_number")
   waiterId     String?   @map("waiter_id")
+  customerId   String?   @map("customer_id")
   customerName String?   @map("customer_name")
   status       String    @default("open") // open, preparing, ready, closed, cancelled
   orderType    String?   @map("order_type") // dine_in, takeout, delivery
@@ -161,6 +188,7 @@ model Order {
   // Relations
   tenant   Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
   table    Table?      @relation(fields: [tableId], references: [id])
+  customer Customer?   @relation(fields: [customerId], references: [id])
   waiter   User?       @relation("waiter_orders", fields: [waiterId], references: [id])
   items    OrderItem[]
   payments Payment[]
@@ -168,6 +196,7 @@ model Order {
   @@unique([tenantId, orderNumber])
   @@index([tenantId, status])
   @@index([tableId])
+  @@index([customerId])
   @@map("orders")
 }
 
