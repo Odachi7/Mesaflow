@@ -1,45 +1,24 @@
 import {
   Injectable,
   NestMiddleware,
-  BadRequestException,
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { ClsService } from 'nestjs-cls';
+import { TenantResolverService } from '../services/tenant-resolver.service';
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
-  constructor(private readonly cls: ClsService) { }
+  constructor(
+    private readonly cls: ClsService,
+    private readonly tenantResolver: TenantResolverService,
+  ) { }
 
   use(req: Request, res: Response, next: NextFunction) {
-    let tenantId: string | null = req.headers['x-tenant-id'] as string;
-
-    if (!tenantId) {
-      tenantId = this.extractTenantFromSubdomain(req.hostname);
-    }
-
-    // Se ainda não encontrou, tentar extrair do token JWT (será implementado depois)
-    // if (!tenantId && req.user) {
-    //   tenantId = req.user.tenantId;
-    // }
-
-    if (!tenantId) {
-      throw new BadRequestException(
-        'Tenant ID is required. Please provide X-Tenant-ID header.',
-      );
-    }
+    const { tenantId, source } = this.tenantResolver.resolveTenant(req);
 
     this.cls.set('tenantId', tenantId);
+    this.cls.set('tenantSource', source);
 
     next();
-  }
-
-  private extractTenantFromSubdomain(hostname: string): string | null {
-    const parts = hostname.split('.');
-
-    if (parts.length > 2) {
-      return parts[0];
-    }
-
-    return null;
   }
 }

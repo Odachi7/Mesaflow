@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { ClsModule } from 'nestjs-cls';
 
 import { DatabaseModule } from './database/database.module';
+import { TenantModule } from './common/tenant.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
@@ -26,10 +27,13 @@ import { UsersModule } from './modules/users/users.module';
     // Database
     DatabaseModule,
 
+    // Tenant Resolution
+    TenantModule,
+
     // Modules
     AuthModule,
     TenantsModule,
     UsersModule,
   ],
 })
-export class AppModule {}
+export class AppModule { }
