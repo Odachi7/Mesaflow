@@ -8,10 +8,14 @@ import {
     OrderResponseDto
 } from './dto';
 import { Decimal } from '@prisma/client/runtime/library';
+import { EventsGateway } from '../../modules/events/events.gateway';
 
 @Injectable()
 export class OrdersService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly eventsGateway: EventsGateway,
+    ) { }
 
     async create(tenantId: string, dto: CreateOrderDto): Promise<OrderResponseDto> {
         // Verificar se mesa existe e está disponível (se fornecida)
@@ -64,13 +68,21 @@ export class OrdersService {
 
         // Atualizar status da mesa se fornecida
         if (dto.tableId) {
-            await this.prisma.table.update({
+            const updatedTable = await this.prisma.table.update({
                 where: { id: dto.tableId },
                 data: { status: 'occupied' },
             });
+
+            // Emitir evento de mesa atualizada
+            this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
         }
 
-        return OrderResponseDto.fromEntity(order);
+        const response = OrderResponseDto.fromEntity(order);
+
+        // Emitir evento de novo pedido
+        this.eventsGateway.emitToTenant(tenantId, 'order.created', response);
+
+        return response;
     }
 
     async findAll(
@@ -179,7 +191,12 @@ export class OrdersService {
         // Recalcular totais do pedido
         await this.recalculateOrderTotals(orderId);
 
-        return this.findOne(tenantId, orderId);
+        const updatedOrder = await this.findOne(tenantId, orderId);
+
+        // Emitir evento de pedido atualizado
+        this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
+
+        return updatedOrder;
     }
 
     async updateItemQuantity(
@@ -210,7 +227,12 @@ export class OrdersService {
 
         await this.recalculateOrderTotals(orderId);
 
-        return this.findOne(tenantId, orderId);
+        const updatedOrder = await this.findOne(tenantId, orderId);
+
+        // Emitir evento de pedido atualizado
+        this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
+
+        return updatedOrder;
     }
 
     async removeItem(tenantId: string, orderId: string, itemId: string): Promise<OrderResponseDto> {
@@ -225,7 +247,12 @@ export class OrdersService {
         await this.prisma.orderItem.delete({ where: { id: itemId } });
         await this.recalculateOrderTotals(orderId);
 
-        return this.findOne(tenantId, orderId);
+        const updatedOrder = await this.findOne(tenantId, orderId);
+
+        // Emitir evento de pedido atualizado
+        this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
+
+        return updatedOrder;
     }
 
     async applyDiscount(
@@ -248,7 +275,12 @@ export class OrdersService {
 
         await this.recalculateOrderTotals(orderId);
 
-        return this.findOne(tenantId, orderId);
+        const updatedOrder = await this.findOne(tenantId, orderId);
+
+        // Emitir evento de pedido atualizado
+        this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
+
+        return updatedOrder;
     }
 
     async closeOrder(tenantId: string, orderId: string): Promise<OrderResponseDto> {
@@ -274,13 +306,19 @@ export class OrdersService {
 
         // Liberar mesa se houver
         if (order.tableId) {
-            await this.prisma.table.update({
+            const updatedTable = await this.prisma.table.update({
                 where: { id: order.tableId },
                 data: { status: 'available' },
             });
+            this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
         }
 
-        return this.findOne(tenantId, orderId);
+        const updatedOrder = await this.findOne(tenantId, orderId);
+
+        // Emitir evento de pedido fechado
+        this.eventsGateway.emitToTenant(tenantId, 'order.status_changed', updatedOrder);
+
+        return updatedOrder;
     }
 
     async cancelOrder(tenantId: string, orderId: string): Promise<OrderResponseDto> {
@@ -303,13 +341,19 @@ export class OrdersService {
 
         // Liberar mesa se houver
         if (order.tableId) {
-            await this.prisma.table.update({
+            const updatedTable = await this.prisma.table.update({
                 where: { id: order.tableId },
                 data: { status: 'available' },
             });
+            this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
         }
 
-        return this.findOne(tenantId, orderId);
+        const updatedOrder = await this.findOne(tenantId, orderId);
+
+        // Emitir evento de pedido cancelado
+        this.eventsGateway.emitToTenant(tenantId, 'order.status_changed', updatedOrder);
+
+        return updatedOrder;
     }
 
     private async recalculateOrderTotals(orderId: string): Promise<void> {

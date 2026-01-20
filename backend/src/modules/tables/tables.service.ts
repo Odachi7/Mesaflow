@@ -2,12 +2,14 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../../database/prisma.service';
 import { CreateTableDto, UpdateTableDto, UpdateTableStatusDto, TableResponseDto } from './dto';
 import { QRCodeService } from './qrcode.service';
+import { EventsGateway } from '../../modules/events/events.gateway';
 
 @Injectable()
 export class TablesService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly qrcodeService: QRCodeService,
+        private readonly eventsGateway: EventsGateway,
     ) { }
 
     async create(tenantId: string, dto: CreateTableDto): Promise<TableResponseDto> {
@@ -33,7 +35,10 @@ export class TablesService {
             },
         });
 
-        return TableResponseDto.fromEntity(table);
+        const response = TableResponseDto.fromEntity(table);
+        this.eventsGateway.emitToTenant(tenantId, 'table.created', response);
+
+        return response;
     }
 
     async findAll(tenantId: string, status?: string): Promise<TableResponseDto[]> {
@@ -91,7 +96,12 @@ export class TablesService {
             data: dto,
         });
 
-        return TableResponseDto.fromEntity(table);
+        const response = TableResponseDto.fromEntity(table);
+
+        // Se houver alteração significativa, emitir evento
+        this.eventsGateway.emitToTenant(tenantId, 'table.updated', response);
+
+        return response;
     }
 
     async updateStatus(
@@ -106,7 +116,10 @@ export class TablesService {
             data: { status: dto.status },
         });
 
-        return TableResponseDto.fromEntity(table);
+        const response = TableResponseDto.fromEntity(table);
+        this.eventsGateway.emitToTenant(tenantId, 'table.updated', response);
+
+        return response;
     }
 
     async remove(tenantId: string, id: string): Promise<void> {
@@ -131,6 +144,9 @@ export class TablesService {
         }
 
         await this.prisma.table.delete({ where: { id } });
+
+        // Emitir evento de exclusão
+        this.eventsGateway.emitToTenant(tenantId, 'table.deleted', { id });
     }
 
     async regenerateQRCode(tenantId: string, id: string): Promise<TableResponseDto> {
