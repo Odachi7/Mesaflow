@@ -7,33 +7,37 @@ import { TenantModule } from './common/tenant.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { TenantsModule } from './modules/tenants/tenants.module';
 import { UsersModule } from './modules/users/users.module';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { ProductsModule } from './modules/products/products.module';
+import { TablesModule } from './modules/tables/tables.module';
+import { OrdersModule } from './modules/orders/orders.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { CustomersModule } from './modules/customers/customers.module';
 
 @Module({
   imports: [
-    // Configuration
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '../.env',
     }),
-
-    // CLS for tenant context
     ClsModule.forRoot({
       global: true,
       middleware: {
         mount: true,
       },
     }),
-
-    // Database
     DatabaseModule,
-
-    // Tenant Resolution
     TenantModule,
-
-    // Modules
     AuthModule,
     TenantsModule,
     UsersModule,
+    CategoriesModule,
+    ProductsModule,
+    TablesModule,
+    OrdersModule,
+    PaymentsModule,
+    CustomersModule,
   ],
 })
 export class AppModule { }
+

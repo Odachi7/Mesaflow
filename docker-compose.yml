@@ -35,25 +35,27 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  # Backend será adicionado depois
-  # backend:
-  #   build:
-  #     context: ./backend
-  #     dockerfile: Dockerfile
-  #   container_name: mesaflow-backend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "3001:3001"
-  #   depends_on:
-  #     - postgres
-  #     - redis
-  #   environment:
-  #     - DATABASE_URL=${DATABASE_URL}
-  #     - REDIS_URL=${REDIS_URL}
-  #     - JWT_SECRET=${JWT_SECRET}
-  #   networks:
-  #     - mesaflow-network
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mesaflow-backend
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/mesaflow?schema=public
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - NODE_ENV=development
+      - PORT=3001
+    networks:
+      - mesaflow-network
   # Frontend será adicionado depois
   # frontend:
   #   build:
