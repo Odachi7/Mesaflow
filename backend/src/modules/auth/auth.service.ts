@@ -2,20 +2,21 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
+import { PrismaService } from '../../database/prisma.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
-  ) {}
+    private prisma: PrismaService,
+  ) { }
 
-  async validateUser(
-    email: string,
-    password: string,
-    tenantId: string,
-  ): Promise<any> {
-    const user = await this.usersService.findByEmail(email, tenantId);
+  async validateUser(email: string, password: string): Promise<any> {
+    // Find user by email only (across all tenants)
+    const user = await this.prisma.user.findFirst({
+      where: { email },
+    });
 
     if (!user) {
       throw new UnauthorizedException('Usuário inválido!');
@@ -35,8 +36,8 @@ export class AuthService {
     return result;
   }
 
-  async login(email: string, password: string, tenantId: string) {
-    const user = await this.validateUser(email, password, tenantId);
+  async login(email: string, password: string) {
+    const user = await this.validateUser(email, password);
 
     const payload = {
       sub: user.id,
@@ -46,7 +47,7 @@ export class AuthService {
     };
 
     return {
-      access_token: this.jwtService.sign(payload),
+      accessToken: this.jwtService.sign(payload),
       user: {
         id: user.id,
         email: user.email,

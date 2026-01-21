@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, App } from 'antd';
 import ptBR from 'antd/locale/pt_BR';
 
 const theme = {
@@ -16,7 +16,9 @@ const AntdConfigProvider = ({ children }: { children: React.ReactNode }) => {
     return (
         <AntdRegistry>
             <ConfigProvider locale={ptBR} theme={theme}>
-                {children}
+                <App>
+                    {children}
+                </App>
             </ConfigProvider>
         </AntdRegistry>
     );
