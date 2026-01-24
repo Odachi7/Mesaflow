@@ -6,6 +6,7 @@
     "private": true,
     "license": "ISC",
     "scripts": {
+        "prebuild": "prisma generate",
         "build": "nest build",
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
         "start": "nest start",
@@ -23,7 +24,8 @@
         "migrate:reset": "prisma migrate reset",
         "studio": "prisma studio",
         "db:seed": "ts-node prisma/seed.ts",
-        "prisma:generate": "prisma generate"
+        "prisma:generate": "prisma generate",
+        "postinstall": "prisma generate"
     },
     "dependencies": {
         "@nestjs/common": "^10.0.0",
