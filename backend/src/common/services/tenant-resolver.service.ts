@@ -8,11 +8,7 @@ export interface TenantResolutionResult {
 
 @Injectable()
 export class TenantResolverService {
-    /**
-     * @param req 
-     * @returns
-     * @throws
-     */
+
     resolveTenant(req: Request): TenantResolutionResult {
         if (req.user?.tenantId) {
             return {
@@ -42,10 +38,6 @@ export class TenantResolverService {
         );
     }
 
-    /**
-     * @param hostname - Hostname da requisição
-     * @returns Tenant ID extraído ou null
-     */
     private extractTenantFromSubdomain(hostname: string): string | null {
         const parts = hostname.split('.');
 
