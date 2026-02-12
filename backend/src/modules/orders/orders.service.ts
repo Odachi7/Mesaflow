@@ -4,8 +4,10 @@ import {
     CreateOrderDto,
     AddOrderItemDto,
     UpdateOrderItemQuantityDto,
+    UpdateOrderItemQuantityDto,
     ApplyDiscountDto,
-    OrderResponseDto
+    OrderResponseDto,
+    UpdateOrderItemStatusDto
 } from './dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import { EventsGateway } from '../../modules/events/events.gateway';
@@ -235,17 +237,27 @@ export class OrdersService {
         return updatedOrder;
     }
 
-    async removeItem(tenantId: string, orderId: string, itemId: string): Promise<OrderResponseDto> {
+        return updatedOrder;
+    }
+
+    async updateItemStatus(
+        tenantId: string,
+        orderId: string,
+        itemId: string,
+        dto: UpdateOrderItemStatusDto,
+    ): Promise < OrderResponseDto > {
         const item = await this.prisma.orderItem.findFirst({
             where: { id: itemId, orderId, tenantId },
         });
 
-        if (!item) {
+        if(!item) {
             throw new NotFoundException('Item não encontrado');
         }
 
-        await this.prisma.orderItem.delete({ where: { id: itemId } });
-        await this.recalculateOrderTotals(orderId);
+        await this.prisma.orderItem.update({
+            where: { id: itemId },
+            data: { status: dto.status },
+        });
 
         const updatedOrder = await this.findOne(tenantId, orderId);
 
@@ -254,142 +266,162 @@ export class OrdersService {
 
         return updatedOrder;
     }
+
+    async removeItem(tenantId: string, orderId: string, itemId: string): Promise < OrderResponseDto > {
+    const item = await this.prisma.orderItem.findFirst({
+        where: { id: itemId, orderId, tenantId },
+    });
+
+    if(!item) {
+        throw new NotFoundException('Item não encontrado');
+    }
+
+        await this.prisma.orderItem.delete({ where: { id: itemId } });
+    await this.recalculateOrderTotals(orderId);
+
+    const updatedOrder = await this.findOne(tenantId, orderId);
+
+    // Emitir evento de pedido atualizado
+    this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
+
+    return updatedOrder;
+}
 
     async applyDiscount(
-        tenantId: string,
-        orderId: string,
-        dto: ApplyDiscountDto,
-    ): Promise<OrderResponseDto> {
-        const order = await this.prisma.order.findFirst({
-            where: { id: orderId, tenantId },
-        });
+    tenantId: string,
+    orderId: string,
+    dto: ApplyDiscountDto,
+): Promise < OrderResponseDto > {
+    const order = await this.prisma.order.findFirst({
+        where: { id: orderId, tenantId },
+    });
 
-        if (!order) {
-            throw new NotFoundException('Pedido não encontrado');
-        }
-
-        await this.prisma.order.update({
-            where: { id: orderId },
-            data: { discount: dto.discount || 0 },
-        });
-
-        await this.recalculateOrderTotals(orderId);
-
-        const updatedOrder = await this.findOne(tenantId, orderId);
-
-        // Emitir evento de pedido atualizado
-        this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
-
-        return updatedOrder;
+    if(!order) {
+        throw new NotFoundException('Pedido não encontrado');
     }
 
-    async closeOrder(tenantId: string, orderId: string): Promise<OrderResponseDto> {
-        const order = await this.prisma.order.findFirst({
-            where: { id: orderId, tenantId },
-        });
-
-        if (!order) {
-            throw new NotFoundException('Pedido não encontrado');
-        }
-
-        if (order.status === 'closed') {
-            throw new BadRequestException('Pedido já está fechado');
-        }
-
         await this.prisma.order.update({
-            where: { id: orderId },
-            data: {
-                status: 'closed',
-                closedAt: new Date(),
-            },
-        });
+        where: { id: orderId },
+        data: { discount: dto.discount || 0 },
+    });
 
-        // Liberar mesa se houver
-        if (order.tableId) {
-            const updatedTable = await this.prisma.table.update({
-                where: { id: order.tableId },
-                data: { status: 'available' },
-            });
-            this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
-        }
+    await this.recalculateOrderTotals(orderId);
 
-        const updatedOrder = await this.findOne(tenantId, orderId);
+    const updatedOrder = await this.findOne(tenantId, orderId);
 
-        // Emitir evento de pedido fechado
-        this.eventsGateway.emitToTenant(tenantId, 'order.status_changed', updatedOrder);
+    // Emitir evento de pedido atualizado
+    this.eventsGateway.emitToTenant(tenantId, 'order.updated', updatedOrder);
 
-        return updatedOrder;
+    return updatedOrder;
+}
+
+    async closeOrder(tenantId: string, orderId: string): Promise < OrderResponseDto > {
+    const order = await this.prisma.order.findFirst({
+        where: { id: orderId, tenantId },
+    });
+
+    if(!order) {
+        throw new NotFoundException('Pedido não encontrado');
     }
 
-    async cancelOrder(tenantId: string, orderId: string): Promise<OrderResponseDto> {
-        const order = await this.prisma.order.findFirst({
-            where: { id: orderId, tenantId },
-        });
+        if(order.status === 'closed') {
+    throw new BadRequestException('Pedido já está fechado');
+}
 
-        if (!order) {
-            throw new NotFoundException('Pedido não encontrado');
-        }
+await this.prisma.order.update({
+    where: { id: orderId },
+    data: {
+        status: 'closed',
+        closedAt: new Date(),
+    },
+});
 
-        if (order.status === 'closed') {
-            throw new BadRequestException('Não é possível cancelar pedido fechado');
-        }
+// Liberar mesa se houver
+if (order.tableId) {
+    const updatedTable = await this.prisma.table.update({
+        where: { id: order.tableId },
+        data: { status: 'available' },
+    });
+    this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
+}
 
-        await this.prisma.order.update({
-            where: { id: orderId },
-            data: { status: 'cancelled', closedAt: new Date() },
-        });
+const updatedOrder = await this.findOne(tenantId, orderId);
 
-        // Liberar mesa se houver
-        if (order.tableId) {
-            const updatedTable = await this.prisma.table.update({
-                where: { id: order.tableId },
-                data: { status: 'available' },
-            });
-            this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
-        }
+// Emitir evento de pedido fechado
+this.eventsGateway.emitToTenant(tenantId, 'order.status_changed', updatedOrder);
 
-        const updatedOrder = await this.findOne(tenantId, orderId);
-
-        // Emitir evento de pedido cancelado
-        this.eventsGateway.emitToTenant(tenantId, 'order.status_changed', updatedOrder);
-
-        return updatedOrder;
+return updatedOrder;
     }
 
-    private async recalculateOrderTotals(orderId: string): Promise<void> {
-        // Buscar todos os itens do pedido
-        const items = await this.prisma.orderItem.findMany({
-            where: { orderId },
-        });
+    async cancelOrder(tenantId: string, orderId: string): Promise < OrderResponseDto > {
+    const order = await this.prisma.order.findFirst({
+        where: { id: orderId, tenantId },
+    });
 
-        // Calcular subtotal
-        const subtotal = items.reduce((sum, item) => {
-            const itemSubtotal = item.subtotal instanceof Decimal ? item.subtotal.toNumber() : Number(item.subtotal);
-            return sum + itemSubtotal;
-        }, 0);
-
-        // Buscar pedido para pegar desconto
-        const order = await this.prisma.order.findUnique({
-            where: { id: orderId },
-        });
-
-        const discount = order?.discount instanceof Decimal ? order.discount.toNumber() : Number(order?.discount || 0);
-
-        // Calcular taxa (10% - pode ser configurável)
-        const taxRate = 0.10;
-        const tax = (subtotal - discount) * taxRate;
-
-        // Calcular total
-        const total = subtotal - discount + tax;
-
-        // Atualizar pedido
-        await this.prisma.order.update({
-            where: { id: orderId },
-            data: {
-                subtotal,
-                tax,
-                total,
-            },
-        });
+    if(!order) {
+        throw new NotFoundException('Pedido não encontrado');
     }
+
+        if(order.status === 'closed') {
+    throw new BadRequestException('Não é possível cancelar pedido fechado');
+}
+
+await this.prisma.order.update({
+    where: { id: orderId },
+    data: { status: 'cancelled', closedAt: new Date() },
+});
+
+// Liberar mesa se houver
+if (order.tableId) {
+    const updatedTable = await this.prisma.table.update({
+        where: { id: order.tableId },
+        data: { status: 'available' },
+    });
+    this.eventsGateway.emitToTenant(tenantId, 'table.updated', updatedTable);
+}
+
+const updatedOrder = await this.findOne(tenantId, orderId);
+
+// Emitir evento de pedido cancelado
+this.eventsGateway.emitToTenant(tenantId, 'order.status_changed', updatedOrder);
+
+return updatedOrder;
+    }
+
+    private async recalculateOrderTotals(orderId: string): Promise < void> {
+    // Buscar todos os itens do pedido
+    const items = await this.prisma.orderItem.findMany({
+        where: { orderId },
+    });
+
+    // Calcular subtotal
+    const subtotal = items.reduce((sum, item) => {
+        const itemSubtotal = item.subtotal instanceof Decimal ? item.subtotal.toNumber() : Number(item.subtotal);
+        return sum + itemSubtotal;
+    }, 0);
+
+    // Buscar pedido para pegar desconto
+    const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+    });
+
+    const discount = order?.discount instanceof Decimal ? order.discount.toNumber() : Number(order?.discount || 0);
+
+    // Calcular taxa (10% - pode ser configurável)
+    const taxRate = 0.10;
+    const tax = (subtotal - discount) * taxRate;
+
+    // Calcular total
+    const total = subtotal - discount + tax;
+
+    // Atualizar pedido
+    await this.prisma.order.update({
+        where: { id: orderId },
+        data: {
+            subtotal,
+            tax,
+            total,
+        },
+    });
+}
 }

@@ -24,6 +24,7 @@ import {
     UpdateOrderItemQuantityDto,
     ApplyDiscountDto,
     OrderResponseDto,
+    UpdateOrderItemStatusDto,
 } from './dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Tenant } from '../../common/decorators/tenant.decorator';
@@ -97,6 +98,19 @@ export class OrdersController {
         @Body() updateDto: UpdateOrderItemQuantityDto,
     ): Promise<OrderResponseDto> {
         return this.ordersService.updateItemQuantity(tenantId, orderId, itemId, updateDto);
+    }
+
+    @Patch(':id/items/:itemId/status')
+    @Roles('admin', 'manager', 'waiter')
+    @ApiOperation({ summary: 'Atualizar status do item do pedido' })
+    @ApiResponse({ status: 200, type: OrderResponseDto })
+    async updateItemStatus(
+        @Tenant() tenantId: string,
+        @Param('id') orderId: string,
+        @Param('itemId') itemId: string,
+        @Body() updateDto: UpdateOrderItemStatusDto,
+    ): Promise<OrderResponseDto> {
+        return this.ordersService.updateItemStatus(tenantId, orderId, itemId, updateDto);
     }
 
     @Delete(':id/items/:itemId')
