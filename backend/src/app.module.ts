@@ -15,6 +15,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { EventsModule } from './modules/events/events.module';
 import { CashRegistersModule } from './modules/cash-registers/cash-registers.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { CashRegistersModule } from './modules/cash-registers/cash-registers.mod
     CustomersModule,
     EventsModule,
     CashRegistersModule,
+    DashboardModule,
   ],
 })
 export class AppModule { }

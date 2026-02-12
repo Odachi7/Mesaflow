@@ -1,116 +1,155 @@
+
 'use client';
 
 import React from 'react';
-import MainLayout from '@/components/layout/MainLayout';
-import { Card } from 'antd';
+import { useDashboard, TopProduct, RecentActivity } from '@/hooks/use-dashboard';
+import { Card, Statistic, Row, Col, Table, List, Tag, Spin, Avatar } from 'antd';
 import {
-    ArrowUpRight,
-    ArrowDownRight,
-    Plus,
-    Calendar,
-    FileText,
-    Package
+    DollarSign, ShoppingBag, Users, Clock,
+    TrendingUp, ArrowUpRight, Utensils
 } from 'lucide-react';
 
 export default function DashboardPage() {
-    // Mock data - será substituído por dados reais da API
-    const stats = [
-        {
-            title: "Pedidos de Hoje",
-            value: 156,
-            trend: '+12%',
-            isPositive: true,
-            subtitle: 'desde ontem'
-        },
-        {
-            title: 'Receita',
-            value: 'R$ 12.450',
-            trend: '+8%',
-            isPositive: true,
-            subtitle: 'desde ontem'
-        },
-        {
-            title: 'Mesas Ativas',
-            value: '24/50',
-            trend: '3 aguardando',
-            isPositive: false,
-            subtitle: 'pagamento'
-        },
-    ];
+    const { overview, topProducts, recentActivity, isLoading } = useDashboard();
 
-    const recentActivity = [
-        { icon: '📦', text: 'Pedido #1234 pronto para retirada', time: 'há 2 min' },
-        { icon: '🪑', text: 'Mesa 5 reservada para 4 pessoas às 19:00', time: 'há 15 min' },
-        { icon: '🍅', text: 'Ingrediente "Molho de Tomate" em estoque baixo', time: 'há 1 hora' },
-        { icon: '👤', text: 'Novo perfil de cliente criado: Sarah L.', time: 'há 2 horas' },
-    ];
-
-    const quickActions = [
-        { label: 'Novo Pedido', icon: Plus, color: 'from-blue-600 to-blue-700' },
-        { label: 'Reservar Mesa', icon: Calendar, color: 'from-blue-600 to-blue-700' },
-        { label: 'Adicionar Produto', icon: Package, color: 'from-blue-600 to-blue-700' },
-        { label: 'Gerar Relatório', icon: FileText, color: 'from-blue-600 to-blue-700' },
-    ];
+    if (isLoading) {
+        return (
+            <div className="h-screen flex items-center justify-center">
+                <Spin size="large" tip="Carregando dashboard..." />
+            </div>
+        );
+    }
 
     return (
-        <MainLayout title="Dashboard">
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                {stats.map((stat, index) => (
-                    <Card key={index} className="shadow-sm hover:shadow-md transition-shadow">
-                        <div className="space-y-2">
-                            <div className="text-sm text-gray-500">{stat.title}</div>
-                            <div className="text-3xl font-bold text-slate-800">{stat.value}</div>
-                            <div className="flex items-center gap-1 text-sm">
-                                {stat.isPositive ? (
-                                    <ArrowUpRight className="w-4 h-4 text-green-500" />
-                                ) : (
-                                    <ArrowDownRight className="w-4 h-4 text-orange-500" />
-                                )}
-                                <span className={stat.isPositive ? 'text-green-600' : 'text-orange-600'}>
-                                    {stat.trend}
-                                </span>
-                                <span className="text-gray-500">{stat.subtitle}</span>
-                            </div>
+        <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
+            <h1 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <TrendingUp className="text-blue-600" />
+                Dashboard
+            </h1>
+
+            {/* Overview Cards */}
+            <Row gutter={[16, 16]}>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card bordered={false} className="shadow-sm hover:shadow-md transition-shadow">
+                        <Statistic
+                            title="Vendas Hoje"
+                            value={overview?.salesToday}
+                            precision={2}
+                            prefix={<DollarSign size={20} className="text-green-500 mr-2" />}
+                            suffix="BRL"
+                            valueStyle={{ color: '#3f8600' }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card bordered={false} className="shadow-sm hover:shadow-md transition-shadow">
+                        <Statistic
+                            title="Total de Pedidos"
+                            value={overview?.ordersCount}
+                            prefix={<ShoppingBag size={20} className="text-blue-500 mr-2" />}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card bordered={false} className="shadow-sm hover:shadow-md transition-shadow">
+                        <Statistic
+                            title="Pedidos Ativos"
+                            value={overview?.activeOrders}
+                            prefix={<Clock size={20} className="text-orange-500 mr-2" />}
+                            valueStyle={{ color: '#faad14' }}
+                        />
+                    </Card>
+                </Col>
+                <Col xs={24} sm={12} lg={6}>
+                    <Card bordered={false} className="shadow-sm hover:shadow-md transition-shadow">
+                        <Statistic
+                            title="Mesas Ocupadas"
+                            value={overview?.occupiedTables}
+                            prefix={<Users size={20} className="text-purple-500 mr-2" />}
+                        />
+                    </Card>
+                </Col>
+            </Row>
+
+            <Row gutter={[16, 16]}>
+                {/* Top Products */}
+                <Col xs={24} lg={12}>
+                    <Card
+                        title={<div className="flex items-center gap-2"><Utensils size={18} /> Produtos Mais Vendidos</div>}
+                        bordered={false}
+                        className="shadow-sm h-full"
+                    >
+                        <List
+                            itemLayout="horizontal"
+                            dataSource={topProducts}
+                            renderItem={(item: TopProduct, index) => (
+                                <List.Item>
+                                    <List.Item.Meta
+                                        avatar={
+                                            <Avatar
+                                                style={{ backgroundColor: index < 3 ? '#ffec3d' : '#f0f0f0', color: index < 3 ? '#cf1322' : '#595959' }}
+                                            >
+                                                {index + 1}
+                                            </Avatar>
+                                        }
+                                        title={<span className="font-medium">{item.name}</span>}
+                                        description={`${item.quantity} unidades vendidas`}
+                                    />
+                                    <div className="text-right">
+                                        <div className="font-bold text-gray-700">R$ {item.total.toFixed(2)}</div>
+                                        <div className="text-xs text-gray-400">R$ {item.price.toFixed(2)} un.</div>
+                                    </div>
+                                </List.Item>
+                            )}
+                        />
+                    </Card>
+                </Col>
+
+                {/* Recent Activity */}
+                <Col xs={24} lg={12}>
+                    <Card
+                        title={<div className="flex items-center gap-2"><Clock size={18} /> Atividade Recente</div>}
+                        bordered={false}
+                        className="shadow-sm h-full"
+                    >
+                        <List
+                            itemLayout="horizontal"
+                            dataSource={recentActivity}
+                            renderItem={(item: RecentActivity) => (
+                                <List.Item>
+                                    <List.Item.Meta
+                                        title={
+                                            <div className="flex justify-between">
+                                                <span className="font-medium">Pedido #{item.orderNumber}</span>
+                                                <small className="text-gray-400">{new Date(item.openedAt).toLocaleTimeString()}</small>
+                                            </div>
+                                        }
+                                        description={
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <Tag color={
+                                                    item.status === 'open' ? 'blue' :
+                                                        item.status === 'ready' ? 'green' :
+                                                            item.status === 'closed' ? 'default' : 'orange'
+                                                }>
+                                                    {item.status.toUpperCase()}
+                                                </Tag>
+                                                {item.table && <Tag>Mesa {item.table.tableNumber}</Tag>}
+                                                {item.customerName && <span className="text-xs text-gray-500">• {item.customerName}</span>}
+                                            </div>
+                                        }
+                                    />
+                                    <div className="font-bold text-gray-700">R$ {Number(item.total).toFixed(2)}</div>
+                                </List.Item>
+                            )}
+                        />
+                        <div className="mt-4 text-center">
+                            <Button type="link" href="/orders" icon={<ArrowUpRight size={14} />}>
+                                Ver todos os pedidos
+                            </Button>
                         </div>
                     </Card>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Recent Activity */}
-                <Card title="Atividade Recente" className="shadow-sm">
-                    <div className="space-y-4">
-                        {recentActivity.map((activity, index) => (
-                            <div key={index} className="flex items-start gap-3 pb-4 border-b border-gray-100 last:border-0 last:pb-0">
-                                <span className="text-2xl">{activity.icon}</span>
-                                <div className="flex-1">
-                                    <p className="text-sm text-slate-700">{activity.text}</p>
-                                    <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </Card>
-
-                {/* Quick Actions */}
-                <Card title="Ações Rápidas" className="shadow-sm">
-                    <div className="grid grid-cols-2 gap-4">
-                        {quickActions.map((action, index) => {
-                            const Icon = action.icon;
-                            return (
-                                <button
-                                    key={index}
-                                    className={`h-24 bg-gradient-to-r ${action.color} hover:opacity-90 transition-opacity rounded-lg shadow-md hover:shadow-lg flex flex-col items-center justify-center gap-2 text-white font-semibold`}
-                                >
-                                    <Icon className="w-6 h-6" />
-                                    <span className="text-sm">{action.label}</span>
-                                </button>
-                            );
-                        })}
-                    </div>
-                </Card>
-            </div>
-        </MainLayout>
+                </Col>
+            </Row>
+        </div>
     );
 }
