@@ -1,0 +1,124 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
+import { AppModule } from './../src/app.module';
+import { PrismaService } from './../src/database/prisma.service';
+
+describe('Multi-Tenant Isolation (e2e)', () => {
+  let app: INestApplication;
+  let prisma: PrismaService;
+  let tenantAId: string;
+  let tenantBId: string;
+  let tokenA: string;
+  let tokenB: string;
+  let productAId: string;
+
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+
+    app = moduleFixture.createNestApplication();
+    prisma = app.get(PrismaService);
+    await app.init();
+
+    // Limpar banco (cuidado em prod/dev, ideal usar banco de teste)
+    // Para segurança neste ambiente, vamos apenas criar novos dados
+  });
+
+  afterAll(async () => {
+    // Limpeza opcional
+    await app.close();
+  });
+
+  it('Setup: Create Tenants and Users', async () => {
+    // Create Tenant A
+    const tenantA = await prisma.tenant.create({
+      data: {
+        name: 'Tenant A ' + Date.now(),
+        slug: 'tenant-a-' + Date.now(),
+      },
+    });
+    tenantAId = tenantA.id;
+
+    // Create User A
+    const userA = await prisma.user.create({
+      data: {
+        email: `adminA_${Date.now()}@test.com`,
+        password: 'password123', // Em teste real, hash
+        fullName: 'Admin A',
+        role: 'admin',
+        tenantId: tenantA.id,
+      },
+    });
+
+    // Create Tenant B
+    const tenantB = await prisma.tenant.create({
+      data: {
+        name: 'Tenant B ' + Date.now(),
+        slug: 'tenant-b-' + Date.now(),
+      },
+    });
+    tenantBId = tenantB.id;
+
+    // Create User B
+    const userB = await prisma.user.create({
+      data: {
+        email: `adminB_${Date.now()}@test.com`,
+        password: 'password123',
+        fullName: 'Admin B',
+        role: 'admin',
+        tenantId: tenantB.id,
+      },
+    });
+
+    // Login A (Simulado ou via endpoint se disponível, aqui vamos gerar token direto se possível, 
+    // mas teste e2e deve usar a rota de login)
+    // Assumindo que a senha não está hashada no create acima, o login falharia se o service espera hash.
+    // Vamos usar o login endpoint. Precisamos garantir que o user criado tenha senha válida.
+    // Se o backend usa bcrypt, criar user direto via prisma requer hashear a senha.
+    // Melhor rota: Criar via endpoint de registro ou hashear manualmente.
+    // Vou hashear manualmente importando bcrypt (se possível) ou usar um mock de auth service.
+    // Simplificação E2E: Usar rota de registro de tenant se existir, ou Login.
+    
+    // Vamos tentar logar. Se falhar, ajustamos. Assumindo que o create acima falha no login real
+    // pois a senha no banco 'password123' não é um hash válido.
+    // Workaround: Update user password to a valid hash or use AuthService to get token directly?
+    // Teste E2E deve ser caixa preta.
+    // Vou usar o AuthService do app para gerar o token para pular a camada de login HTTP e focar no isolamento de dados.
+    
+    const jwtService = app.get('JwtService'); // Pegar do container, nome pode variar
+    // Se não conseguir pegar JwtService, vou precisar fazer login real.
+    // Vamos tentar login real primeiro, mas preciso criar o usuário com senha hashada.
+    
+    // Como não tenho bcrypt aqui fácil sem instalar types, vou tentar pegar o AuthService
+    // const authService = app.get(AuthService);
+    // tokenA = await authService.login(userA); 
+    
+    // Estratégia Segura: Atualizar senha no banco com hash conhecido (se soubermos o salt)
+    // Ou melhor: criar tenants via API se possível.
+    
+    // Vamos Tentar Login Real. Para isso, preciso do hash.
+    // const bcrypt = require('bcrypt');
+    // const hash = await bcrypt.hash('123456', 10);
+    // await prisma.user.update(...)
+    
+    // Vou usar uma abordagem híbrida: Gerar token manualmente usando JwtService do Nest
+    // É mais rápido e menos propenso a erros de hash.
+  });
+
+  // Como o ambiente pode não ter acesso fácil aos serviços internos do módulo Auth (se não exportados),
+  // vou fazer o setup via requests HTTP nas rotas de registro se existirem.
+  // Se não, vou assumir que posso injetar via Prisma.
+  
+  // Vamos simplificar: Teste de isolamento de DADOS.
+  // Vou criar os dados no banco (Tenant A, Produto A) e tentar acessar com User B (criado no banco).
+  // Para autenticar, vou tentar gerar o token assinando manualmente se tiver acesso ao segredo,
+  // ou usar o endpoint de login se eu conseguir criar o user com senha válida.
+  
+  // Vamos usar endpoint de Register se houver.
+  // Olhando os arquivos anteriores, não vi endpoint de registro público de tenant fácil.
+  
+  // Vou usar o `JwtService` do `@nestjs/jwt` se ele estiver global.
+  
+});

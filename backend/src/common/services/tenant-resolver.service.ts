@@ -10,11 +10,28 @@ export interface TenantResolutionResult {
 export class TenantResolverService {
 
     resolveTenant(req: Request): TenantResolutionResult {
-        if (req.user?.tenantId) {
-            return {
-                tenantId: req.user.tenantId,
-                source: 'jwt',
-            };
+        // 2. Tentar decodificar JWT do header Authorization manualmente
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            try {
+                // Decode payload (second part of JWT)
+                const base64Url = token.split('.')[1];
+                if (base64Url) {
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = Buffer.from(base64, 'base64').toString('utf-8');
+                    const payload = JSON.parse(jsonPayload);
+
+                    if (payload.tenantId) {
+                        return {
+                            tenantId: payload.tenantId,
+                            source: 'jwt',
+                        };
+                    }
+                }
+            } catch (e) {
+                // Ignore invalid tokens here, let AuthGuard handle it
+            }
         }
 
         const headerTenantId = req.headers['x-tenant-id'] as string;
