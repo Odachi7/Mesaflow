@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useOrder, useOrders, OrderItem } from '@/hooks/use-orders';
 import { AddOrderItemModal } from '@/components/orders/AddOrderItemModal';
+import { PaymentModal } from '@/components/payments/PaymentModal';
 
 export default function OrderDetailsPage() {
     const params = useParams();
@@ -21,6 +22,7 @@ export default function OrderDetailsPage() {
 
     // Modal State
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     // Fetch Order
     const { data: order, isLoading: isLoadingOrder, error } = useOrder(orderId);
@@ -57,6 +59,11 @@ export default function OrderDetailsPage() {
     };
 
     const handleCloseOrder = () => {
+        closeOrder(orderId);
+    };
+
+    const handlePaymentSuccess = () => {
+        // After payment is registered, we close the order
         closeOrder(orderId);
     };
 
@@ -334,13 +341,7 @@ export default function OrderDetailsPage() {
                                     icon={<CheckCircle size={20} />}
                                     className="bg-green-600 hover:bg-green-700 mt-4 h-12"
                                     onClick={() => {
-                                        Modal.confirm({
-                                            title: 'Fechar Pedido?',
-                                            content: `Confirma o fechamento do pedido no valor de R$ ${Number(order.total).toFixed(2)}?`,
-                                            okText: 'Confirmar Fechamento',
-                                            cancelText: 'Voltar',
-                                            onOk: handleCloseOrder
-                                        });
+                                        setIsPaymentModalOpen(true);
                                     }}
                                 >
                                     Fechar e Cobrar
@@ -364,6 +365,16 @@ export default function OrderDetailsPage() {
                 onSubmit={handleAddItem}
                 isLoading={isAddingItem}
             />
+
+            {order && (
+                <PaymentModal
+                    open={isPaymentModalOpen}
+                    onClose={() => setIsPaymentModalOpen(false)}
+                    orderId={orderId}
+                    totalAmount={Number(order.total)}
+                    onSuccess={handlePaymentSuccess}
+                />
+            )}
         </div>
     );
 }

@@ -14,6 +14,7 @@ import { OrdersModule } from './modules/orders/orders.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { EventsModule } from './modules/events/events.module';
+import { CashRegistersModule } from './modules/cash-registers/cash-registers.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { EventsModule } from './modules/events/events.module';
     PaymentsModule,
     CustomersModule,
     EventsModule,
+    CashRegistersModule,
   ],
 })
 export class AppModule { }
