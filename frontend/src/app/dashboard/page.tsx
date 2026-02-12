@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useDashboard, TopProduct, RecentActivity } from '@/hooks/use-dashboard';
-import { Card, Statistic, Row, Col, Table, List, Tag, Spin, Avatar } from 'antd';
+import { Card, Statistic, Row, Col, Table, List, Tag, Spin, Avatar, Button } from 'antd';
 import {
     DollarSign, ShoppingBag, Users, Clock,
     TrendingUp, ArrowUpRight, Utensils

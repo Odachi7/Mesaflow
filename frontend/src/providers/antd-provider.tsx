@@ -4,6 +4,7 @@ import React from 'react';
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, App } from 'antd';
 import ptBR from 'antd/locale/pt_BR';
+import { RealtimeHandler } from '@/components/common/RealtimeHandler';
 
 const theme = {
     token: {
@@ -17,6 +18,7 @@ const AntdConfigProvider = ({ children }: { children: React.ReactNode }) => {
         <AntdRegistry>
             <ConfigProvider locale={ptBR} theme={theme}>
                 <App>
+                    <RealtimeHandler />
                     {children}
                 </App>
             </ConfigProvider>
