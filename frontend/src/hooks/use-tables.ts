@@ -13,7 +13,7 @@ interface UpdateTableDto extends CreateTableDto {
     id: string;
 }
 
-export const useTables = () => {
+export const useTables = (filters?: { status?: string; capacity?: number }) => {
     const { message } = App.useApp();
     const queryClient = useQueryClient();
 
@@ -23,11 +23,15 @@ export const useTables = () => {
         isLoading,
         error,
     } = useQuery<Table[]>({
-        queryKey: ['tables'],
+        queryKey: ['tables', filters],
         queryFn: async () => {
-            console.log('[useTables] Fetching tables from API...');
+            const params = new URLSearchParams();
+            if (filters?.status) params.append('status', filters.status);
+            if (filters?.capacity) params.append('capacity', filters.capacity.toString());
+
+            console.log('[useTables] Fetching tables from API...', filters);
             try {
-                const response = await api.get('/tables');
+                const response = await api.get(`/tables?${params.toString()}`);
                 console.log('[useTables] Success:', response.data);
                 return response.data;
             } catch (err: any) {
