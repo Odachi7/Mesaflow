@@ -1,17 +1,26 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { Input, Badge, Avatar, Dropdown } from 'antd';
 import { Search, Bell, LogOut, User, Settings } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import type { MenuProps } from 'antd';
 
-interface HeaderProps {
-    title: string;
-}
+const ROUTE_TITLES: Record<string, string> = {
+    '/dashboard': 'Dashboard',
+    '/orders': 'Pedidos',
+    '/products': 'Produtos',
+    '/categories': 'Categorias',
+    '/tables': 'Mesas',
+    '/cashier': 'Caixa',
+};
 
-export default function Header({ title }: HeaderProps) {
+export default function Header() {
+    const pathname = usePathname();
     const { user, logout } = useAuth();
+
+    const title = ROUTE_TITLES[pathname ?? ''] ?? 'MesaFlow';
 
     const userMenuItems: MenuProps['items'] = [
         {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+
 import { Button, message, Input } from 'antd';
 import { Plus, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -104,7 +104,7 @@ export default function CategoriesPage() {
     );
 
     return (
-        <MainLayout title="Categorias">
+        <div>
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <Input
                     prefix={<Search className="w-4 h-4 text-gray-400" />}
@@ -139,6 +139,6 @@ export default function CategoriesPage() {
                 initialValues={editingCategory}
                 loading={createMutation.isPending || updateMutation.isPending}
             />
-        </MainLayout>
+        </div>
     );
 }

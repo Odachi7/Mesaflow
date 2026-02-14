@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+
 import { Button, message, Input, Select } from 'antd';
 import { Plus, Search } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -116,7 +116,7 @@ export default function ProductsPage() {
     );
 
     return (
-        <MainLayout title="Produtos">
+        <div>
             <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="flex gap-4 w-full sm:w-auto">
                     <Input
@@ -168,6 +168,6 @@ export default function ProductsPage() {
                 categories={categories}
                 loading={createMutation.isPending || updateMutation.isPending}
             />
-        </MainLayout>
+        </div>
     );
 }

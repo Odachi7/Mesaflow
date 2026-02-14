@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import MainLayout from '@/components/layout/MainLayout';
+
 import TableCard, { Table } from '@/components/tables/TableCard';
 import TableFormModal from '@/components/tables/TableFormModal';
 import { Button, FloatButton, Select, Input, Empty } from 'antd';
@@ -76,14 +76,12 @@ export default function TablesPage() {
 
     if (isLoading) {
         return (
-            <MainLayout title="Mesas">
-                <Loading fullScreen tip="Carregando mesas..." />
-            </MainLayout>
+            <Loading fullScreen tip="Carregando mesas..." />
         );
     }
 
     return (
-        <MainLayout title="Mesas">
+        <div>
             {/* Filters and Search */}
             <div className="flex flex-col md:flex-row gap-4 mb-6">
                 <div className="flex-1">
@@ -155,6 +153,6 @@ export default function TablesPage() {
                 onSubmit={handleModalSubmit}
                 isLoading={isCreating || isUpdating}
             />
-        </MainLayout>
+        </div>
     );
 }
