@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import { Button, message, Input, Select } from 'antd';
 import { Plus, Search } from 'lucide-react';
@@ -111,9 +111,11 @@ export default function ProductsPage() {
         }
     };
 
-    const filteredProducts = products.filter(prod =>
-        prod.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredProducts = useMemo(() => {
+        return products.filter(prod =>
+            prod.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [products, searchTerm]);
 
     return (
         <div>

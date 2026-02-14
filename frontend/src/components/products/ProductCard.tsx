@@ -12,7 +12,7 @@ interface ProductCardProps {
     isLoading?: boolean;
 }
 
-export const ProductCard: React.FC<ProductCardProps> = ({
+export const ProductCard = React.memo<ProductCardProps>(({
     product,
     onEdit,
     onDelete,
@@ -133,4 +133,6 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
         </Card>
     );
-};
+});
+
+ProductCard.displayName = 'ProductCard';

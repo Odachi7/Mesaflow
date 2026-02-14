@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import { Button, message, Input } from 'antd';
 import { Plus, Search } from 'lucide-react';
@@ -99,9 +99,11 @@ export default function CategoriesPage() {
         }
     };
 
-    const filteredCategories = categories.filter(cat =>
-        cat.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredCategories = useMemo(() => {
+        return categories.filter(cat =>
+            cat.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [categories, searchTerm]);
 
     return (
         <div>

@@ -9,7 +9,7 @@ interface OrderCardProps {
     order: Order;
 }
 
-export const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
+export const OrderCard = React.memo<OrderCardProps>(({ order }) => {
     const router = useRouter();
 
     const getStatusColor = (status: string) => {
@@ -96,4 +96,6 @@ export const OrderCard: React.FC<OrderCardProps> = ({ order }) => {
             </div>
         </Card>
     );
-};
+});
+
+OrderCard.displayName = 'OrderCard';

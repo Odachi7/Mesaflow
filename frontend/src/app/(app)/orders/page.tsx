@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button, Input, Select, Empty, Spin } from 'antd';
 import { Plus, Search, Filter } from 'lucide-react';
 import { useOrders } from '@/hooks/use-orders';
@@ -39,15 +39,17 @@ export default function OrdersPage() {
         });
     };
 
-    const filteredOrders = orders.filter(order => {
-        if (!filters.search) return true;
-        const searchLower = filters.search.toLowerCase();
-        return (
-            order.orderNumber.toString().includes(searchLower) ||
-            order.customer?.name.toLowerCase().includes(searchLower) ||
-            order.table?.tableNumber.includes(searchLower)
-        );
-    });
+    const filteredOrders = useMemo(() => {
+        return orders.filter(order => {
+            if (!filters.search) return true;
+            const searchLower = filters.search.toLowerCase();
+            return (
+                order.orderNumber.toString().includes(searchLower) ||
+                order.customer?.name.toLowerCase().includes(searchLower) ||
+                order.table?.tableNumber.includes(searchLower)
+            );
+        });
+    }, [orders, filters.search]);
 
     return (
         <div className="space-y-6">

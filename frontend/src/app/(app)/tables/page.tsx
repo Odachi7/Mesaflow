@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 import TableCard, { Table } from '@/components/tables/TableCard';
 import TableFormModal from '@/components/tables/TableFormModal';
@@ -27,11 +27,13 @@ export default function TablesPage() {
         isUpdating,
     } = useTables();
 
-    const filteredTables = tables.filter((table) => {
-        const matchesSearch = table.tableNumber.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = statusFilter === 'all' || table.status === statusFilter;
-        return matchesSearch && matchesStatus;
-    });
+    const filteredTables = useMemo(() => {
+        return tables.filter((table) => {
+            const matchesSearch = table.tableNumber.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesStatus = statusFilter === 'all' || table.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [tables, searchTerm, statusFilter]);
 
     const handleView = (table: Table) => {
         message.info(`Visualizando Mesa ${table.tableNumber}`);

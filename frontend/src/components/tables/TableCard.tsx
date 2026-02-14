@@ -45,7 +45,7 @@ const statusConfig = {
     },
 };
 
-export default function TableCard({ table, onView, onEdit, onDelete }: TableCardProps) {
+const TableCard = React.memo<TableCardProps>(({ table, onView, onEdit, onDelete }) => {
     const config = statusConfig[table.status];
 
     const menuItems: MenuProps['items'] = [
@@ -128,4 +128,8 @@ export default function TableCard({ table, onView, onEdit, onDelete }: TableCard
             </div>
         </Card>
     );
-}
+});
+
+TableCard.displayName = 'TableCard';
+
+export default TableCard;
